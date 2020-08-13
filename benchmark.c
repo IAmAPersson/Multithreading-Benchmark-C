@@ -6,6 +6,11 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <stdio.h>
+#ifdef WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
 
 #define BENCHMARK_LENGTH 30000000000
 
@@ -36,7 +41,7 @@ unsigned long isqrt(unsigned long x)
 }
 
 //This function initializes and manages all of the threads
-int benchmarkThreads(unsigned int threads, bool FPU)
+int benchmarkThreads(unsigned int threads, bool FPU, bool detailed)
 {
 	printf("Running benchmark across %d threads...\n", threads);
 
@@ -54,14 +59,34 @@ int benchmarkThreads(unsigned int threads, bool FPU)
 			clock_gettime(0, &endTime);
 			#pragma omp barrier //wait for this to be done before the data is passed into the functions
 
-			Data smallRes = calculateFloating(startTime, &endTime); //calculate floating point in parallel
+			Data smallRes;
+			if (omp_get_thread_num() == threads)
+			{
+				while ((endTime.tv_nsec - startTime.tv_nsec) + (endTime.tv_sec - startTime.tv_sec) * 1000000000 < BENCHMARK_LENGTH)
+				{
+					clock_gettime(0, &endTime);
+
+					#ifdef WIN32
+					Sleep(1);
+					#else
+					usleep(1000);
+					#endif
+				}
+			}
+			else
+			{
+				smallRes = calculateFloating(startTime, &endTime); //calculate floating-point in parallel
+
+				if (detailed)
+					printf("Thread %d score: %lu\n", omp_get_thread_num(), smallRes.total);
+			}
 
 			#pragma omp critical
 			resData[omp_get_thread_num()] = smallRes; //collect the data, I don't think this has to be a critical, but it can't hurt since this isn't performance-sensitive
 		}
 	else
 		//Run in parallel with the given number of threads, with the timespec structs shared across threads
-		#pragma omp parallel num_threads(threads) shared(startTime, endTime)
+		#pragma omp parallel num_threads(threads + 1) shared(startTime, endTime)
 		{
 			//Make the master thread initialize the timespec structs
 			#pragma omp master
@@ -69,7 +94,27 @@ int benchmarkThreads(unsigned int threads, bool FPU)
 			clock_gettime(0, &endTime);
 			#pragma omp barrier //wait for this to be done before the data is passed into the functions
 
-			Data smallRes = calculateInteger(startTime, &endTime); //calculate integer in parallel
+			Data smallRes;
+			if (omp_get_thread_num() == threads)
+			{
+				while ((endTime.tv_nsec - startTime.tv_nsec) + (endTime.tv_sec - startTime.tv_sec) * 1000000000 < BENCHMARK_LENGTH)
+				{
+					clock_gettime(0, &endTime);
+
+					#ifdef WIN32
+					Sleep(1);
+					#else
+					usleep(1000);
+					#endif
+				}
+			}
+			else
+			{
+				smallRes = calculateInteger(startTime, &endTime); //calculate integer in parallel
+
+				if (detailed)
+					printf("Thread %d score: %lu\n", omp_get_thread_num(), smallRes.total);
+			}
 
 			#pragma omp critical
 			resData[omp_get_thread_num()] = smallRes; //collect the data, I don't think this has to be a critical, but it can't hurt since this isn't performance-sensitive
@@ -94,10 +139,10 @@ int benchmarkThreads(unsigned int threads, bool FPU)
 	return total / 100000;
 }
 
-int benchmark(bool FPU)
+int benchmark(bool FPU, bool detailed)
 {
 	//Call the main benchmarking function with the max threads available
-	return benchmarkThreads(omp_get_max_threads(), FPU);
+	return benchmarkThreads(omp_get_max_threads(), FPU, detailed);
 }
 
 //This function stresses the integer part of the CPU
@@ -119,10 +164,6 @@ Data calculateInteger(struct timespec start, struct timespec *end)
 		//See if it's in; if it is, increment in
 		if (isqrt(x * x + y * y) < SHRT_MAX)
 			in++;
-		
-		//Master thread needs to update the time
-		#pragma omp master
-		clock_gettime(0, end);
 	}
 
 	//Pack everything into our struct
@@ -153,10 +194,6 @@ Data calculateFloating(struct timespec start, struct timespec *end)
 		//See if it's in; if it is, increment in
 		if (sqrt(pow(x, 2) + pow(y, 2)) < 1)
 			in++;
-		
-		//Master thread needs to update the time
-		#pragma omp master
-		clock_gettime(0, end);
 	}
 
 	//Pack everything into our struct

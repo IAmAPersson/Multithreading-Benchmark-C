@@ -14,5 +14,5 @@ Data calculateFloating(struct timespec start, struct timespec *end);
 Data calculateInteger(struct timespec start, struct timespec *end);
 
 //Benchmarking prototypes
-int benchmarkThreads(unsigned int threads, bool FPU);
-int benchmark(bool FPU);
+int benchmarkThreads(unsigned int threads, bool FPU, bool detailed);
+int benchmark(bool FPU, bool detailed);
