@@ -50,7 +50,8 @@ int benchmarkThreads(unsigned int threads, bool FPU, bool detailed)
 
 	//If we're stressing floating-point (not necessarily FPU)
 	if (FPU)
-		//Run in parallel with the given number of threads, with the timespec structs shared across threads
+		//Run in parallel with the given number of threads + 1, with the timespec structs shared across threads
+		//The + 1 is for a thread that runs the timer
 		#pragma omp parallel num_threads(threads) shared(startTime, endTime)
 		{
 			//Make the master thread initialize the timespec structs
@@ -60,12 +61,15 @@ int benchmarkThreads(unsigned int threads, bool FPU, bool detailed)
 			#pragma omp barrier //wait for this to be done before the data is passed into the functions
 
 			Data smallRes;
-			if (omp_get_thread_num() == threads)
+			if (omp_get_thread_num() == threads) //if we're the highest # thread (which is the + 1)
 			{
+				//We're the timer thread. Run this loop until 30 seconds are up
 				while ((endTime.tv_nsec - startTime.tv_nsec) + (endTime.tv_sec - startTime.tv_sec) * 1000000000 < BENCHMARK_LENGTH)
 				{
+					//Update the time
 					clock_gettime(0, &endTime);
 
+					//Sleep for a millisecond so we don't destroy the benchmark with busy waiting
 					#ifdef WIN32
 					Sleep(1);
 					#else
@@ -85,7 +89,8 @@ int benchmarkThreads(unsigned int threads, bool FPU, bool detailed)
 			resData[omp_get_thread_num()] = smallRes; //collect the data, I don't think this has to be a critical, but it can't hurt since this isn't performance-sensitive
 		}
 	else
-		//Run in parallel with the given number of threads, with the timespec structs shared across threads
+		//Run in parallel with the given number of threads + 1, with the timespec structs shared across threads
+		//The + 1 is for a thread that runs the timer
 		#pragma omp parallel num_threads(threads + 1) shared(startTime, endTime)
 		{
 			//Make the master thread initialize the timespec structs
@@ -95,12 +100,15 @@ int benchmarkThreads(unsigned int threads, bool FPU, bool detailed)
 			#pragma omp barrier //wait for this to be done before the data is passed into the functions
 
 			Data smallRes;
-			if (omp_get_thread_num() == threads)
+			if (omp_get_thread_num() == threads) //if we're the highest # thread (which is the + 1)
 			{
+				//We're the timer thread. Run this loop until 30 seconds are up
 				while ((endTime.tv_nsec - startTime.tv_nsec) + (endTime.tv_sec - startTime.tv_sec) * 1000000000 < BENCHMARK_LENGTH)
 				{
+					//Update the time
 					clock_gettime(0, &endTime);
 
+					//Sleep for a millisecond so we don't destroy the benchmark with busy waiting
 					#ifdef WIN32
 					Sleep(1);
 					#else
@@ -113,7 +121,7 @@ int benchmarkThreads(unsigned int threads, bool FPU, bool detailed)
 				smallRes = calculateInteger(startTime, &endTime); //calculate integer in parallel
 
 				if (detailed)
-					printf("Thread %d score: %lu\n", omp_get_thread_num(), smallRes.total);
+					printf("Thread %d score: %lu\n", omp_get_thread_num(), smallRes.total); //if the user wants a detailed result, give it to 'em!
 			}
 
 			#pragma omp critical
