@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-fopenmp -O0
+CFLAGS=-fopenmp -O2 -pedantic-errors -Werror
 CPFLAGS=-lm
 
 main: main.o benchmark.o
