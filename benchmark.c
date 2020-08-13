@@ -15,7 +15,7 @@
 #define BENCHMARK_LENGTH 30000000000
 
 //I don't know how this works because I copied it from StackOverflow
-unsigned long isqrt(unsigned long x)
+inline unsigned long isqrt(unsigned long x)
 {
 	register unsigned long op, res, one;
 
