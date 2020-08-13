@@ -52,7 +52,7 @@ int benchmarkThreads(unsigned int threads, bool FPU, bool detailed)
 	if (FPU)
 		//Run in parallel with the given number of threads + 1, with the timespec structs shared across threads
 		//The + 1 is for a thread that runs the timer
-		#pragma omp parallel num_threads(threads) shared(startTime, endTime)
+		#pragma omp parallel num_threads(threads + 1) shared(startTime, endTime)
 		{
 			//Make the master thread initialize the timespec structs
 			#pragma omp master
