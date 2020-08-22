@@ -84,10 +84,12 @@ int benchmarkThreads(unsigned int threads, bool FPU, bool detailed)
 
 				if (detailed)
 					printf("Thread %d score: %lu\n", omp_get_thread_num(), smallRes.total);
+				
+				#pragma omp critical
+				resData[omp_get_thread_num()] = smallRes; //collect the data, I don't think this has to be a critical, but it can't hurt since this isn't performance-sensitive
+		
 			}
 
-			#pragma omp critical
-			resData[omp_get_thread_num()] = smallRes; //collect the data, I don't think this has to be a critical, but it can't hurt since this isn't performance-sensitive
 		}
 	else
 		//Run in parallel with the given number of threads + 1, with the timespec structs shared across threads
