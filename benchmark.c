@@ -89,7 +89,6 @@ int benchmarkThreads(unsigned int threads, bool FPU, bool detailed)
 				
 				#pragma omp critical
 				resData[omp_get_thread_num()] = smallRes; //collect the data, I don't think this has to be a critical, but it can't hurt since this isn't performance-sensitive
-		
 			}
 
 		}
@@ -127,10 +126,11 @@ int benchmarkThreads(unsigned int threads, bool FPU, bool detailed)
 
 				if (detailed)
 					printf("Thread %d score: %lu\n", omp_get_thread_num(), smallRes.total); //if the user wants a detailed result, give it to 'em!
+			
+				#pragma omp critical
+				resData[omp_get_thread_num()] = smallRes; //collect the data, I don't think this has to be a critical, but it can't hurt since this isn't performance-sensitive
 			}
 
-			#pragma omp critical
-			resData[omp_get_thread_num()] = smallRes; //collect the data, I don't think this has to be a critical, but it can't hurt since this isn't performance-sensitive
 		}
 
 	unsigned long total = 0, in = 0;
