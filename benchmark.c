@@ -1,4 +1,4 @@
-#define _POSIX_C_SOURCE 199309L
+//#define _POSIX_C_SOURCE 199309L
 #include "benchmark.h"
 #include <stdbool.h>
 #include <omp.h>
@@ -57,8 +57,10 @@ int benchmarkThreads(unsigned int threads, bool FPU, bool detailed)
 		{
 			//Make the master thread initialize the timespec structs
 			#pragma omp master
-			clock_gettime(0, &startTime);
-			clock_gettime(0, &endTime);
+			{
+				clock_gettime(0, &startTime);
+				clock_gettime(0, &endTime);
+			}
 			#pragma omp barrier //wait for this to be done before the data is passed into the functions
 
 			Data smallRes;
